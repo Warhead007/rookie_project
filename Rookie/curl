@@ -1,2 +1,14 @@
 ///complete data///
 curl -F "name=ham" -F "age=22" -F  "email=rawit_ham@hotmailcom" -F "note=Newbie programmer"  -F "avatar=@Pictures/paradrop.png" http://localhost:1323/save
+
+///connect to mongoshell///
+sudo docker exec -it mongodb mongo admin
+
+///login in mongodb///
+db.auth("username","password")
+
+///location of robo3T///
+/usr/local/bin/robomongo
+
+///start robo3T///
+./robo3t
