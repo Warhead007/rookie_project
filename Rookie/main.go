@@ -19,6 +19,11 @@ type userData struct {
 	Email  string `json:"email"`
 }
 
+type errorMessage struct {
+	Code        string `json:"code"`
+	Description string `json:"description"`
+}
+
 func main() {
 
 	e := echo.New()
@@ -40,6 +45,7 @@ func createUser(c echo.Context) error {
 	return c.JSON(http.StatusCreated, u)
 }
 
+///function to get data from user///
 func getData(c echo.Context) error {
 	name := c.FormValue("name")
 	age := c.FormValue("age")
@@ -51,7 +57,11 @@ func getData(c echo.Context) error {
 	}
 	//check email format//
 	re := regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
-
+	///email invalid error message in JSON///
+	emailError := &errorMessage{
+		Code:        "401",
+		Description: "Invalid email format",
+	}
 	///check input data///
 	if len(name) == 0 {
 		return c.String(http.StatusUnauthorized, "Plase enter your name.")
@@ -61,7 +71,7 @@ func getData(c echo.Context) error {
 		return c.String(http.StatusUnauthorized, "Plase enter your email.")
 		///if email format invavid///
 	} else if !re.MatchString(email) {
-		return c.String(http.StatusUnauthorized, "Plase enter correct format of email.")
+		return c.JSON(http.StatusUnauthorized, emailError)
 	}
 	//souce of image//
 	src, err := avatar.Open()
@@ -95,16 +105,30 @@ func getData(c echo.Context) error {
 	if err != nil {
 		return c.HTML(http.StatusBadRequest, "")
 	}
+	///file type error message in JSON///
+	fileError := &errorMessage{
+		Code:        "401",
+		Description: "Invalid file type. Upload .png or .jpg/.jpeg only",
+	}
 	///check file type///
 	if contentType != "image/png" && contentType != "image/jpg" {
 		os.Remove(fileName)
-		return c.String(http.StatusUnauthorized, "File type not correct.")
+		return c.JSON(http.StatusUnauthorized, fileError)
 	}
 	///calculate year of birth///
 	time := time.Now()
 	conAge, err := strconv.Atoi(age)
 	if err != nil {
 		return err
+	}
+	///age error message in JSON///
+	ageError := &errorMessage{
+		Code:        "401",
+		Description: "Invalid age. You age must in range of 1 - 100",
+	}
+	///check age validation///
+	if conAge <= 0 || conAge > 100 {
+		return c.JSON(http.StatusUnauthorized, ageError)
 	}
 	yearOfBirth := time.Year() - conAge
 	createTime := time.Format("15:04:05 02-01-2006")
