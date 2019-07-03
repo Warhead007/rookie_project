@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"strconv"
+	"time"
 
 	"github.com/labstack/echo"
 )
@@ -47,13 +49,27 @@ func getData(c echo.Context) error {
 	if err != nil {
 		return err
 	}
+	//check email format//
+	re := regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
+
+	///check input data///
+	if len(name) == 0 {
+		return c.String(http.StatusUnauthorized, "Plase enter your name.")
+	} else if len(age) == 0 {
+		return c.String(http.StatusUnauthorized, "Plase enter your age.")
+	} else if len(email) == 0 {
+		return c.String(http.StatusUnauthorized, "Plase enter your email.")
+		///if email format invavid///
+	} else if !re.MatchString(email) {
+		return c.String(http.StatusUnauthorized, "Plase enter correct format of email.")
+	}
 	//souce of image//
 	src, err := avatar.Open()
 	if err != nil {
 		return err
 	}
 	defer src.Close()
-
+	///set path of image in server///
 	fileName := "img/" + avatar.Filename
 
 	//destination to upload image//
@@ -84,24 +100,17 @@ func getData(c echo.Context) error {
 		os.Remove(fileName)
 		return c.String(http.StatusUnauthorized, "File type not correct.")
 	}
-	//check email format//
-	re := regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
+	///calculate year of birth///
+	time := time.Now()
+	conAge, err := strconv.Atoi(age)
+	if err != nil {
+		return err
+	}
+	yearOfBirth := time.Year() - conAge
+	createTime := time.Format("15:04:05 02-01-2006")
+	updateTime := createTime
 
-	///check input data///
-	if len(name) == 0 {
-		return c.String(http.StatusUnauthorized, "Plase enter your name.")
-	}
-	if len(age) == 0 {
-		return c.String(http.StatusUnauthorized, "Plase enter your age.")
-	}
-	if len(email) == 0 {
-		return c.String(http.StatusUnauthorized, "Plase enter your email.")
-		///if email format invavid///
-	} else if !re.MatchString(email) {
-		return c.String(http.StatusUnauthorized, "Plase enter correct format of email.")
-	}
-
-	return c.HTML(http.StatusOK, name+" "+age+" "+email+" "+note+" "+contentType+" ")
+	return c.HTML(http.StatusOK, " "+name+" "+age+" "+strconv.Itoa(yearOfBirth)+" "+email+" "+note+" "+contentType+" "+createTime+" "+updateTime+" ")
 }
 
 ///function to get file type///
