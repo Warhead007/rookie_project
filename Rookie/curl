@@ -1,0 +1,1 @@
+curl -F "name=ham" -F "age=22" -F  "email=rawit_ham@hotmailcom" -F "note=Newbie programmer"  -F "avatar=@Pictures/paradrop.png" http://localhost:1323/save
