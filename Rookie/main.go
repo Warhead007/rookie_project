@@ -20,7 +20,7 @@ const (
 	collection = "user_data"
 )
 
-//UserData struct//
+//UserData to handle data//
 type UserData struct {
 	ID          bson.ObjectId `bson:"_id"`
 	Name        string        `bson:"name" json:"name"`
@@ -34,28 +34,31 @@ type UserData struct {
 	Updatetime  string        `bson:"update_time" json:"update_time"`
 }
 
-//ErrorMessage struct//
+//ErrorMessage to store error message in JSON//
 type ErrorMessage struct {
 	Code        string `json:"code"`
 	Description string `json:"description"`
 }
 
+//AllUserData using with GetAllUser function//
+type AllUserData struct {
+	Count int      `bson:"count" json:"count"`
+	Data  UserData `bson:"data" json:"data"`
+}
+
 func main() {
 
 	e := echo.New()
-	e.POST("/user", createUser)
-	e.POST("/save", addData)
+	e.GET("/user/:user_id", GetUser)
+	e.GET("/users", GetAllData)
+
+	e.POST("/save", AddData)
 
 	e.Logger.Fatal(e.Start(":1323"))
 }
 
-func createUser(c echo.Context) error {
-
-	return c.JSON(http.StatusCreated, addData(c))
-}
-
-///function to get data from user///
-func addData(c echo.Context) error {
+//AddData :function to get data from user//
+func AddData(c echo.Context) error {
 	name := c.FormValue("name")
 	age := c.FormValue("age")
 	email := c.FormValue("email")
@@ -119,7 +122,7 @@ func addData(c echo.Context) error {
 	defer o.Close()
 
 	//using getFileType//
-	contentType, err := getFileType(o)
+	contentType, err := GetFileType(o)
 	if err != nil {
 		return c.HTML(http.StatusBadRequest, "")
 	}
@@ -129,7 +132,7 @@ func addData(c echo.Context) error {
 		Description: "Invalid file type. Upload .png or .jpg/.jpeg only",
 	}
 	///check file type///
-	if contentType != "image/png" && contentType != "image/jpg" {
+	if contentType != "image/png" && contentType != "image/jpeg" && contentType != "image/jpg" {
 		os.Remove(fileName)
 		return c.JSON(http.StatusUnauthorized, fileError)
 	}
@@ -148,6 +151,7 @@ func addData(c echo.Context) error {
 	if conAge <= 0 || conAge > 100 {
 		return c.JSON(http.StatusUnauthorized, ageError)
 	}
+	///calculate year of birth with year now///
 	yearOfBirth := time.Year() - conAge
 	createTime := time.Format("15:04:05 02-01-2006")
 	updateTime := createTime
@@ -181,11 +185,11 @@ func addData(c echo.Context) error {
 	}
 	///can add data to database///
 	a.Insert(add)
-	return c.JSON(http.StatusCreated, getUserData(add.ID))
+	return c.JSON(http.StatusCreated, GetUserData(add.ID))
 }
 
-///function get one user by ID///
-func getUserData(id bson.ObjectId) UserData {
+//GetUserData : function get one user by ID//
+func GetUserData(id bson.ObjectId) UserData {
 	///open session to connect database///
 	session, err := mgo.Dial(server)
 	if err != nil {
@@ -205,8 +209,60 @@ func getUserData(id bson.ObjectId) UserData {
 	return userdata
 }
 
-///function to get file type///
-func getFileType(out *os.File) (string, error) {
+//GetUser : function get user data from GetUserData to show in HTML//
+func GetUser(c echo.Context) error {
+	id := c.Param("user_id")
+	///check if id param send with invaild format (24-digit)///
+	if len(id) != 24 {
+		return c.HTML(http.StatusUnauthorized, "Invalid ID format. Plase try again")
+	}
+	///convert string to bson object///
+	bsonID := bson.ObjectIdHex(id)
+
+	u := GetUserData(bsonID)
+	///when cannot found user with this id///
+	findUserError := &ErrorMessage{
+		Code:        "401",
+		Description: "User not found",
+	}
+	if u == (UserData{}) {
+		return c.JSON(http.StatusUnauthorized, findUserError)
+	}
+
+	return c.JSON(http.StatusCreated, u)
+}
+
+//GetAllUser : get all user data from database//
+func GetAllUser() ([]UserData, error) {
+	///open session to connect database///
+	session, err := mgo.Dial(server)
+	if err != nil {
+		panic(err)
+	}
+	defer session.Close()
+
+	///access to database and collection to using data///
+	a := session.DB(database).C(collection)
+	usersdata := []UserData{}
+	///find ID of user///
+	a.Find(nil).All(&usersdata)
+	if err != nil {
+		panic(err)
+	}
+	return usersdata, err
+}
+
+//GetAllData : get data from GetAllUser to HTML//
+func GetAllData(c echo.Context) error {
+	u, err := GetAllUser()
+	if err != nil {
+		return c.HTML(http.StatusUnauthorized, "Something went wrong")
+	}
+	return c.JSON(http.StatusCreated, u)
+}
+
+//GetFileType : function to get file type
+func GetFileType(out *os.File) (string, error) {
 	///read file in first 512 byte to check file type///
 	buffer := make([]byte, 512)
 
