@@ -414,28 +414,29 @@ func UpdateData(c echo.Context) error {
 	///calculate year of birth with year now///
 	yearOfBirth := t.Year() - conAge
 	l, _ := time.LoadLocation("Local")
-
-	if note == "clean" {
+	if note == "" {
+		note = GetUserData(bsonID).Note
+	} else if note == "clean" {
 		note = ""
 	}
 
-	// update := &UserData{
-	// 	Name:        name,
-	// 	Avatarname:  avatar.Filename,
-	// 	Avatartype:  contentType,
-	// 	Age:         conAge,
-	// 	Yearofbirth: yearOfBirth,
-	// 	Note:        note,
-	// 	Updatetime:  t.In(l),
-	// }
+	update := &UserData{
+		Name:        name,
+		Avatarname:  avatar.Filename,
+		Avatartype:  contentType,
+		Age:         conAge,
+		Yearofbirth: yearOfBirth,
+		Note:        note,
+		Updatetime:  t.In(l),
+	}
 
 	a.UpdateId(bsonID, bson.M{"$set": bson.M{
-		"name":          name,
-		"avatar_name":   avatar.Filename,
-		"avatar_type":   contentType,
-		"age":           conAge,
-		"year_of_birth": yearOfBirth,
-		"note":          note,
-		"update_time":   t.In(l)}})
+		"name":          update.Name,
+		"avatar_name":   update.Avatarname,
+		"avatar_type":   update.Avatartype,
+		"age":           update.Age,
+		"year_of_birth": update.Yearofbirth,
+		"note":          update.Note,
+		"update_time":   update.Updatetime}})
 	return c.JSON(http.StatusCreated, GetUserData(bsonID))
 }
