@@ -54,6 +54,8 @@ func main() {
 
 	e.POST("/save", AddData)
 
+	e.PUT("/user/:user_id", UpdateData)
+
 	e.Logger.Fatal(e.Start(":1323"))
 }
 
@@ -187,6 +189,21 @@ func AddData(c echo.Context) error {
 	return c.JSON(http.StatusCreated, GetUserData(add.ID))
 }
 
+//GetFileType : function to get file type
+func GetFileType(out *os.File) (string, error) {
+	///read file in first 512 byte to check file type///
+	buffer := make([]byte, 512)
+
+	_, err := out.Read(buffer)
+	if err != nil {
+		return "buffer incorrect", err
+	}
+
+	contentType := http.DetectContentType(buffer)
+
+	return contentType, nil
+}
+
 //GetUserData : function get one user by ID//
 func GetUserData(id bson.ObjectId) UserData {
 	///open session to connect database///
@@ -247,7 +264,7 @@ func GetAllUser(limit, page int) (*AllUserData, error) {
 	///variable for store data to show with condition///
 	queryData := []UserData{}
 	///query all of user data///
-	a.Find(nil).All(&usersData)
+	a.Find(nil).Sort("-create_time").All(&usersData)
 	if err != nil {
 		panic(err)
 	}
@@ -256,14 +273,13 @@ func GetAllUser(limit, page int) (*AllUserData, error) {
 	///start point to query data from condition///
 	startValue := 0
 	///check page///
-	if page == 1 {
-		startValue = 0
-	} else if page > 1 {
-		///start point changed///
-		startValue = (limit - 1) * (page - 1)
+	if page > 1 {
+		///start point changed up to page///
+		startValue = limit * (page - 1)
 	}
-	///if limit = 1. Logic error when page != 1 that not query any data///
-	if limit == page {
+	if limit == 1 && page <= len(usersData) {
+		queryData = append(queryData, usersData[startValue])
+	} else if limit == page {
 		for i := startValue; i <= limit; i++ {
 			///avoid a out of range of slices///
 			if i == len(usersData) {
@@ -312,17 +328,114 @@ func GetAllData(c echo.Context) error {
 	return c.JSON(http.StatusCreated, u)
 }
 
-//GetFileType : function to get file type
-func GetFileType(out *os.File) (string, error) {
-	///read file in first 512 byte to check file type///
-	buffer := make([]byte, 512)
-
-	_, err := out.Read(buffer)
+//UpdateData function for get update user data in database//
+func UpdateData(c echo.Context) error {
+	id := c.Param("user_id")
+	///check if id param send with invaild format (24-digit)///
+	if len(id) != 24 {
+		return c.HTML(http.StatusUnauthorized, "Invalid ID format. Plase try again")
+	}
+	///convert string to bson object///
+	bsonID := bson.ObjectIdHex(id)
+	name := c.FormValue("name")
+	age := c.FormValue("age")
+	note := c.FormValue("note")
+	avatar, err := c.FormFile("avatar")
 	if err != nil {
-		return "buffer incorrect", err
+		return err
+	}
+	///open session to connect database///
+	session, err := mgo.Dial(server)
+	if err != nil {
+		return err
+	}
+	defer session.Close()
+
+	///access to database and collection to using data///
+	a := session.DB(database).C(collection)
+
+	///check input data///
+	if len(name) == 0 {
+		return c.String(http.StatusUnauthorized, "Plase enter your name.")
+	} else if len(age) == 0 {
+		return c.String(http.StatusUnauthorized, "Plase enter your age.")
+	}
+	//souce of image//
+	src, err := avatar.Open()
+	if err != nil {
+		return err
+	}
+	defer src.Close()
+	///set path of image in server///
+	fileName := "img/" + avatar.Filename
+
+	//destination to upload image//
+	dst, err := os.Create(fileName)
+	if err != nil {
+		return err
+	}
+	defer dst.Close()
+
+	//copy image from souce to destination//
+	if _, err = io.Copy(dst, src); err != nil {
+		return err
+	}
+	//for get file name to check file type//
+	o, err := os.Open(fileName)
+	if err != nil {
+		return err
+	}
+	defer o.Close()
+
+	//using getFileType//
+	contentType, err := GetFileType(o)
+	if err != nil {
+		return c.HTML(http.StatusBadRequest, "")
+	}
+	///file type error message in JSON///
+	fileError := &ErrorMessage{
+		Code:        "401",
+		Description: "Invalid file type. Upload .png or .jpg/.jpeg only",
+	}
+	///check file type///
+	if contentType != "image/png" && contentType != "image/jpeg" && contentType != "image/jpg" {
+		os.Remove(fileName)
+		return c.JSON(http.StatusUnauthorized, fileError)
+	}
+	///calculate year of birth///
+	t := time.Now()
+	conAge, err := strconv.Atoi(age)
+	if err != nil {
+		return err
+	}
+	///age error message in JSON///
+	ageError := &ErrorMessage{
+		Code:        "401",
+		Description: "Invalid age. You age must in range of 1 - 100",
+	}
+	///check age validation///
+	if conAge <= 0 || conAge > 100 {
+		return c.JSON(http.StatusUnauthorized, ageError)
+	}
+	///calculate year of birth with year now///
+	yearOfBirth := t.Year() - conAge
+	l, _ := time.LoadLocation("Local")
+
+	if note == "clean" {
+		note = ""
 	}
 
-	contentType := http.DetectContentType(buffer)
+	///get data from user store into JSON format///
+	update := &UserData{
+		Name:        name,
+		Avatarname:  avatar.Filename,
+		Avatartype:  contentType,
+		Age:         conAge,
+		Yearofbirth: yearOfBirth,
+		Note:        note,
+		Updatetime:  t.In(l),
+	}
 
-	return contentType, nil
+	a.UpdateId(bsonID, update)
+	return c.JSON(http.StatusCreated, GetUserData(bsonID))
 }
