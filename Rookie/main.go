@@ -354,12 +354,6 @@ func UpdateData(c echo.Context) error {
 	///access to database and collection to using data///
 	a := session.DB(database).C(collection)
 
-	///check input data///
-	if len(name) == 0 {
-		return c.String(http.StatusUnauthorized, "Plase enter your name.")
-	} else if len(age) == 0 {
-		return c.String(http.StatusUnauthorized, "Plase enter your age.")
-	}
 	//souce of image//
 	src, err := avatar.Open()
 	if err != nil {
@@ -425,17 +419,23 @@ func UpdateData(c echo.Context) error {
 		note = ""
 	}
 
-	///get data from user store into JSON format///
-	update := &UserData{
-		Name:        name,
-		Avatarname:  avatar.Filename,
-		Avatartype:  contentType,
-		Age:         conAge,
-		Yearofbirth: yearOfBirth,
-		Note:        note,
-		Updatetime:  t.In(l),
-	}
+	// update := &UserData{
+	// 	Name:        name,
+	// 	Avatarname:  avatar.Filename,
+	// 	Avatartype:  contentType,
+	// 	Age:         conAge,
+	// 	Yearofbirth: yearOfBirth,
+	// 	Note:        note,
+	// 	Updatetime:  t.In(l),
+	// }
 
-	a.UpdateId(bsonID, update)
+	a.Update(bson.M{"_id": id}, bson.M{"$Set": bson.M{
+		"name":          name,
+		"avatar_name":   avatar.Filename,
+		"avatar_type":   contentType,
+		"age":           conAge,
+		"year_of_birth": yearOfBirth,
+		"note":          note,
+		"update_time":   t.In(l)}})
 	return c.JSON(http.StatusCreated, GetUserData(bsonID))
 }
