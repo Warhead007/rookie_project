@@ -22,7 +22,7 @@ const (
 
 //UserData to handle data//
 type UserData struct {
-	ID          bson.ObjectId `bson:"_id"`
+	ID          bson.ObjectId `bson:"_id" json:"_id"`
 	Name        string        `bson:"name" json:"name"`
 	Avatarname  string        `bson:"avatar_name" json:"avatar_name"`
 	Avatartype  string        `bson:"avatar_type" json:"avatar_type"`
@@ -429,7 +429,7 @@ func UpdateData(c echo.Context) error {
 	// 	Updatetime:  t.In(l),
 	// }
 
-	a.Update(bson.M{"_id": id}, bson.M{"$Set": bson.M{
+	a.UpdateId(bsonID, bson.M{"$set": bson.M{
 		"name":          name,
 		"avatar_name":   avatar.Filename,
 		"avatar_type":   contentType,
