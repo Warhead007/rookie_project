@@ -42,8 +42,8 @@ type ErrorMessage struct {
 
 //AllUserData using with GetAllUser function//
 type AllUserData struct {
-	Count int      `bson:"count" json:"count"`
-	Data  UserData `bson:"data" json:"data"`
+	Count int        `bson:"count" json:"count"`
+	Data  []UserData `bson:"data" json:"data"`
 }
 
 func main() {
@@ -200,7 +200,7 @@ func GetUserData(id bson.ObjectId) UserData {
 	///access to database and collection to using data///
 	a := session.DB(database).C(collection)
 	userdata := UserData{}
-	///find ID of user///
+	///query user data with ID///
 	a.Find(bson.M{"_id": id}).One(&userdata)
 	if err != nil {
 		panic(err)
@@ -233,7 +233,7 @@ func GetUser(c echo.Context) error {
 }
 
 //GetAllUser : get all user data from database//
-func GetAllUser() ([]UserData, error) {
+func GetAllUser(limit, page int) (*AllUserData, error) {
 	///open session to connect database///
 	session, err := mgo.Dial(server)
 	if err != nil {
@@ -243,21 +243,67 @@ func GetAllUser() ([]UserData, error) {
 
 	///access to database and collection to using data///
 	a := session.DB(database).C(collection)
-	usersdata := []UserData{}
-	///find ID of user///
-	a.Find(nil).All(&usersdata)
+	///variable for store all data of user///
+	usersData := []UserData{}
+	///variable for store data to show with condition///
+	queryData := []UserData{}
+	///query all of user data///
+	a.Find(nil).All(&usersData)
 	if err != nil {
 		panic(err)
 	}
-	return usersdata, err
+	///count all data in database///
+	count, err := a.Find(nil).Count()
+	///start point to query data from condition///
+	startValue := 0
+	///check page///
+	if page == 1 {
+		startValue = 0
+	} else if page > 1 {
+		///start point changed///
+		startValue = limit * (page - 1)
+	}
+	///if limit = 1. Logic error when page != 1 that not query any data///
+	if limit == 1 && page != 1 {
+		///query data from userData into queryData with startValue///
+		queryData = append(queryData, usersData[startValue])
+	} else {
+		for i := startValue; i < limit; i++ {
+			///avoid a out of range of slices///
+			if i == len(usersData) {
+				break
+			}
+			///query data from userData into queryData///
+			queryData = append(queryData, usersData[i])
+		}
+
+	}
+	///store all data to show in show variable///
+	show := &AllUserData{
+		Count: count,
+		Data:  queryData,
+	}
+	///return in JSON format///
+	return show, err
 }
 
 //GetAllData : get data from GetAllUser to HTML//
 func GetAllData(c echo.Context) error {
-	u, err := GetAllUser()
-	if err != nil {
-		return c.HTML(http.StatusUnauthorized, "Something went wrong")
+	///check error, limit value and page value they cannot be 0 or less than///
+	limit, err := strconv.Atoi(c.QueryParam("limit"))
+	if err != nil || limit <= 0 {
+		return c.HTML(http.StatusUnauthorized, "Invalid limit value")
 	}
+	page, err := strconv.Atoi(c.QueryParam("page"))
+	if err != nil || page <= 0 {
+		return c.HTML(http.StatusUnauthorized, "Invalid page value")
+	}
+	///store value from GetAllUser in u variable///
+	u, err := GetAllUser(limit, page)
+	if err != nil {
+		return c.HTML(http.StatusUnauthorized, "Cannot get user data")
+	}
+	///return in JSON format in HTML///
 	return c.JSON(http.StatusCreated, u)
 }
 
