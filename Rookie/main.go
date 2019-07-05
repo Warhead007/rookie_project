@@ -30,8 +30,8 @@ type UserData struct {
 	Yearofbirth int           `bson:"year_of_birth" json:"year_of_birth"`
 	Note        string        `bson:"note,omitempty" json:"note,omitempty"`
 	Email       string        `bson:"email" json:"email"`
-	Createtime  string        `bson:"create_time" json:"create_time"`
-	Updatetime  string        `bson:"update_time" json:"update_time"`
+	Createtime  time.Time     `bson:"create_time" json:"create_time"`
+	Updatetime  time.Time     `bson:"update_time" json:"update_time"`
 }
 
 //ErrorMessage to store error message in JSON//
@@ -137,7 +137,7 @@ func AddData(c echo.Context) error {
 		return c.JSON(http.StatusUnauthorized, fileError)
 	}
 	///calculate year of birth///
-	time := time.Now()
+	t := time.Now()
 	conAge, err := strconv.Atoi(age)
 	if err != nil {
 		return err
@@ -152,9 +152,8 @@ func AddData(c echo.Context) error {
 		return c.JSON(http.StatusUnauthorized, ageError)
 	}
 	///calculate year of birth with year now///
-	yearOfBirth := time.Year() - conAge
-	createTime := time.Format("15:04:05 02-01-2006")
-	updateTime := createTime
+	yearOfBirth := t.Year() - conAge
+	l, _ := time.LoadLocation("Local")
 
 	///get data from user store into JSON format///
 	add := &UserData{
@@ -166,8 +165,8 @@ func AddData(c echo.Context) error {
 		Yearofbirth: yearOfBirth,
 		Note:        note,
 		Email:       email,
-		Createtime:  createTime,
-		Updatetime:  updateTime,
+		Createtime:  t.In(l),
+		Updatetime:  t.In(l),
 	}
 	///check error when email exists///
 	emailExists := &ErrorMessage{
@@ -261,12 +260,18 @@ func GetAllUser(limit, page int) (*AllUserData, error) {
 		startValue = 0
 	} else if page > 1 {
 		///start point changed///
-		startValue = limit * (page - 1)
+		startValue = (limit - 1) * (page - 1)
 	}
 	///if limit = 1. Logic error when page != 1 that not query any data///
-	if limit == 1 && page != 1 {
-		///query data from userData into queryData with startValue///
-		queryData = append(queryData, usersData[startValue])
+	if limit == page {
+		for i := startValue; i <= limit; i++ {
+			///avoid a out of range of slices///
+			if i == len(usersData) {
+				break
+			}
+			///query data from userData into queryData///
+			queryData = append(queryData, usersData[i])
+		}
 	} else {
 		for i := startValue; i < limit; i++ {
 			///avoid a out of range of slices///
