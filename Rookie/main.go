@@ -414,10 +414,10 @@ func UpdateData(c echo.Context) error {
 	///calculate year of birth with year now///
 	yearOfBirth := t.Year() - conAge
 	l, _ := time.LoadLocation("Local")
+
+	///if user not want to change note///
 	if note == "" {
 		note = GetUserData(bsonID).Note
-	} else if note == "clean" {
-		note = ""
 	}
 
 	update := &UserData{
@@ -429,7 +429,7 @@ func UpdateData(c echo.Context) error {
 		Note:        note,
 		Updatetime:  t.In(l),
 	}
-
+	///update data into database///
 	a.UpdateId(bsonID, bson.M{"$set": bson.M{
 		"name":          update.Name,
 		"avatar_name":   update.Avatarname,
@@ -438,5 +438,20 @@ func UpdateData(c echo.Context) error {
 		"year_of_birth": update.Yearofbirth,
 		"note":          update.Note,
 		"update_time":   update.Updatetime}})
+
+	///if user input in note "clean". note field will be delete///
+	if note == "clean" {
+		a.UpdateId(bsonID, bson.M{"$unset": bson.M{"note": ""}})
+	}
+
+	///when cannot found user with this id///
+	findUserError := &ErrorMessage{
+		Code:        "401",
+		Description: "User not found",
+	}
+	if GetUserData(bsonID) == (UserData{}) {
+		return c.JSON(http.StatusUnauthorized, findUserError)
+	}
+
 	return c.JSON(http.StatusCreated, GetUserData(bsonID))
 }
