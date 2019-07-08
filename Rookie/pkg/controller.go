@@ -94,7 +94,7 @@ func AddUser(c echo.Context) error {
 		return c.JSON(http.StatusUnauthorized, fileError)
 	}
 
-	conAge, yearOfBirth := CheckAge(age)
+	conAge, yearOfBirth := CalYearofBirth(age)
 	///age error message in JSON///
 	ageError := &ErrorMessage{
 		Code:        "401",
@@ -143,7 +143,7 @@ func GetUser(c echo.Context) error {
 	return c.JSON(http.StatusCreated, u)
 }
 
-//GetAllUser : get data from GetAllUser to HTML//
+//GetAllUser : get data from GetAllUserData to HTML//
 func GetAllUser(c echo.Context) error {
 	///check error, limit value and page value they cannot be 0 or less than///
 	limit, err := strconv.Atoi(c.QueryParam("limit"))
@@ -238,7 +238,7 @@ func UpdateUser(c echo.Context) error {
 	}
 	conAge, yearOfBirth := 0, 0
 	if age != "" {
-		conAge, yearOfBirth = CheckAge(age)
+		conAge, yearOfBirth = CalYearofBirth(age)
 		///age error message in JSON///
 		ageError := &ErrorMessage{
 			Code:        "401",

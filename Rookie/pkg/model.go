@@ -44,7 +44,6 @@ func AddData(name string, avatarName string, avatarType string, age int, yearOfB
 		panic(err)
 	}
 	defer session.Close()
-
 	///access to database and collection to using data///
 	a := session.DB(database).C(collection)
 
@@ -75,7 +74,6 @@ func GetUserData(id bson.ObjectId) UserData {
 		panic(err)
 	}
 	defer session.Close()
-
 	///access to database and collection to using data///
 	a := session.DB(database).C(collection)
 	userdata := UserData{}
@@ -96,7 +94,6 @@ func DeleteUserData(id bson.ObjectId) error {
 		return err
 	}
 	defer session.Close()
-
 	///access to database and collection to using data///
 	a := session.DB(database).C(collection)
 	///delete data by user id///
@@ -107,7 +104,7 @@ func DeleteUserData(id bson.ObjectId) error {
 	return err
 }
 
-//GetAllUserData : get all user data from database//
+//GetAllUserData : get all user data from database //
 func GetAllUserData(limit, page int) (*AllUserData, error) {
 	///open session to connect database///
 	session, err := mgo.Dial(server)
@@ -115,12 +112,11 @@ func GetAllUserData(limit, page int) (*AllUserData, error) {
 		panic(err)
 	}
 	defer session.Close()
-
 	///access to database and collection to using data///
 	a := session.DB(database).C(collection)
 	///variable for store all data of user///
 	usersData := []UserData{}
-	///variable for store data to show with condition///
+	///variable for store data to show with condition limit and page///
 	queryData := []UserData{}
 	///query all of user data///
 	a.Find(nil).Sort("-create_time").All(&usersData)
@@ -136,6 +132,7 @@ func GetAllUserData(limit, page int) (*AllUserData, error) {
 		///start point changed up to page///
 		startValue = limit * (page - 1)
 	}
+	///if limit is 1 and page not higher than len of userData (Avoid index out of range)///
 	if limit == 1 && page <= len(usersData) {
 		queryData = append(queryData, usersData[startValue])
 	} else {
@@ -147,7 +144,6 @@ func GetAllUserData(limit, page int) (*AllUserData, error) {
 			///query data from userData into queryData///
 			queryData = append(queryData, usersData[i])
 		}
-
 	}
 	///store all data to show in show variable///
 	show := &AllUserData{
@@ -166,7 +162,6 @@ func UpdateData(id bson.ObjectId, name string, age int, yearOfBirth int, avatarN
 		panic(err)
 	}
 	defer session.Close()
-
 	///access to database and collection to using data///
 	a := session.DB(database).C(collection)
 	///calculate year of birth///
@@ -179,14 +174,12 @@ func UpdateData(id bson.ObjectId, name string, age int, yearOfBirth int, avatarN
 			"name":        name,
 			"update_time": t.In(l)}})
 	}
-
 	if note != "" {
 		a.UpdateId(id, bson.M{"$set": bson.M{
 			"note":        note,
 			"update_time": t.In(l)}})
-	}
-	///if user input in note "clean". note field will be delete///
-	if note == "clean" {
+	} else if note == "clean" {
+		///if user input in note "clean". note field will be delete///
 		a.UpdateId(id, bson.M{"$unset": bson.M{"note": ""}})
 		a.UpdateId(id, bson.M{"$set": bson.M{"update_time": t.In(l)}})
 	}
@@ -198,7 +191,6 @@ func UpdateData(id bson.ObjectId, name string, age int, yearOfBirth int, avatarN
 			"avatar_type": avatarType,
 			"update_time": t.In(l)}})
 	}
-
 	if age != 0 {
 		a.UpdateId(id, bson.M{"$set": bson.M{
 			"age":           age,
@@ -211,10 +203,11 @@ func UpdateData(id bson.ObjectId, name string, age int, yearOfBirth int, avatarN
 //CountEmail function to check email exists in database//
 func CountEmail(email string) int {
 	///open session to connect database///
-	session, _ := mgo.Dial(server)
-
+	session, err := mgo.Dial(server)
+	if err != nil {
+		panic(err)
+	}
 	defer session.Close()
-
 	///access to database and collection to using data///
 	a := session.DB(database).C(collection)
 	///check email with count a found data in database///
@@ -237,8 +230,8 @@ func GetFileType(out *os.File) (string, error) {
 	return contentType, nil
 }
 
-//CheckAge : function to check age validation and calculate year of birth//
-func CheckAge(age string) (int, int) {
+//CalYearofBirth : function to convert age and calculate year of birth//
+func CalYearofBirth(age string) (int, int) {
 	///calculate year of birth///
 	t := time.Now()
 	conAge, _ := strconv.Atoi(age)
