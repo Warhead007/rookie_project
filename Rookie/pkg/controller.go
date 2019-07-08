@@ -132,12 +132,12 @@ func GetUser(c echo.Context) error {
 	u := GetUserData(bsonID)
 	///when cannot found user with this id///
 	findUserError := &ErrorMessage{
-		Code:        "401",
+		Code:        "404",
 		Description: "User not found",
 	}
 	///if not found any data///
 	if u == (UserData{}) {
-		return c.JSON(http.StatusUnauthorized, findUserError)
+		return c.JSON(http.StatusNotFound, findUserError)
 	}
 
 	return c.JSON(http.StatusCreated, u)
@@ -148,16 +148,16 @@ func GetAllUser(c echo.Context) error {
 	///check error, limit value and page value they cannot be 0 or less than///
 	limit, err := strconv.Atoi(c.QueryParam("limit"))
 	if err != nil || limit <= 0 {
-		return c.HTML(http.StatusUnauthorized, "Invalid limit value")
+		limit = 10
 	}
 	page, err := strconv.Atoi(c.QueryParam("page"))
 	if err != nil || page <= 0 {
-		return c.HTML(http.StatusUnauthorized, "Invalid page value")
+		page = 1
 	}
 	///store value from GetAllUser in u variable///
 	u, err := GetAllUserData(limit, page)
 	if err != nil {
-		return c.HTML(http.StatusUnauthorized, "Cannot get user data")
+		return c.JSON(http.StatusUnauthorized, internalError)
 	}
 	///return in JSON format in HTML///
 	return c.JSON(http.StatusCreated, u)
@@ -175,12 +175,12 @@ func UpdateUser(c echo.Context) error {
 
 	///when not found user with this id///
 	findUserError := &ErrorMessage{
-		Code:        "401",
+		Code:        "404",
 		Description: "User not found",
 	}
 	///if not found any data in database///
 	if GetUserData(bsonID) == (UserData{}) {
-		return c.JSON(http.StatusUnauthorized, findUserError)
+		return c.JSON(http.StatusNotFound, findUserError)
 	}
 
 	name := c.FormValue("name")
@@ -234,6 +234,7 @@ func UpdateUser(c echo.Context) error {
 			os.Remove(fileName)
 			return c.JSON(http.StatusUnauthorized, fileError)
 		}
+		///set file name///
 		avatarName = avatar.Filename
 	}
 	conAge, yearOfBirth := 0, 0
@@ -249,6 +250,7 @@ func UpdateUser(c echo.Context) error {
 			return c.JSON(http.StatusUnauthorized, ageError)
 		}
 	}
+	///using UpdataData to update data in database with this data///
 	userID := UpdateData(bsonID, name, conAge, yearOfBirth, avatarName, note, contentType)
 
 	return c.JSON(http.StatusCreated, GetUserData(userID))
@@ -269,11 +271,11 @@ func DeleteUser(c echo.Context) error {
 
 	///when not found user with this id///
 	findUserError := &ErrorMessage{
-		Code:        "401",
+		Code:        "404",
 		Description: "User not found",
 	}
 	if GetUserData(bsonID) == (UserData{}) {
-		return c.JSON(http.StatusUnauthorized, findUserError)
+		return c.JSON(http.StatusNotFound, findUserError)
 	}
 	DeleteUserData(bsonID)
 	return c.JSON(http.StatusCreated, &status{Success: true})
