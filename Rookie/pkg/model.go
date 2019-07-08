@@ -178,7 +178,8 @@ func UpdateData(id bson.ObjectId, name string, age int, yearOfBirth int, avatarN
 		a.UpdateId(id, bson.M{"$set": bson.M{
 			"note":        note,
 			"update_time": t.In(l)}})
-	} else if note == "clean" {
+	}
+	if note == "clean" {
 		///if user input in note "clean". note field will be delete///
 		a.UpdateId(id, bson.M{"$unset": bson.M{"note": ""}})
 		a.UpdateId(id, bson.M{"$set": bson.M{"update_time": t.In(l)}})
