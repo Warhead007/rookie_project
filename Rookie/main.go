@@ -56,6 +56,8 @@ func main() {
 
 	e.PUT("/user/:user_id", UpdateData)
 
+	e.DELETE("/user/:user_id", DeleteUser)
+
 	e.Logger.Fatal(e.Start(":1323"))
 }
 
@@ -337,6 +339,16 @@ func UpdateData(c echo.Context) error {
 	}
 	///convert string to bson object///
 	bsonID := bson.ObjectIdHex(id)
+
+	///when not found user with this id///
+	findUserError := &ErrorMessage{
+		Code:        "401",
+		Description: "User not found",
+	}
+	if GetUserData(bsonID) == (UserData{}) {
+		return c.JSON(http.StatusUnauthorized, findUserError)
+	}
+
 	name := c.FormValue("name")
 	age := c.FormValue("age")
 	note := c.FormValue("note")
@@ -353,98 +365,125 @@ func UpdateData(c echo.Context) error {
 
 	///access to database and collection to using data///
 	a := session.DB(database).C(collection)
-
-	//souce of image//
-	src, err := avatar.Open()
-	if err != nil {
-		return err
-	}
-	defer src.Close()
-	///set path of image in server///
-	fileName := "img/" + avatar.Filename
-
-	//destination to upload image//
-	dst, err := os.Create(fileName)
-	if err != nil {
-		return err
-	}
-	defer dst.Close()
-
-	//copy image from souce to destination//
-	if _, err = io.Copy(dst, src); err != nil {
-		return err
-	}
-	//for get file name to check file type//
-	o, err := os.Open(fileName)
-	if err != nil {
-		return err
-	}
-	defer o.Close()
-
-	//using getFileType//
-	contentType, err := GetFileType(o)
-	if err != nil {
-		return c.HTML(http.StatusBadRequest, "")
-	}
-	///file type error message in JSON///
-	fileError := &ErrorMessage{
-		Code:        "401",
-		Description: "Invalid file type. Upload .png or .jpg/.jpeg only",
-	}
-	///check file type///
-	if contentType != "image/png" && contentType != "image/jpeg" && contentType != "image/jpg" {
-		os.Remove(fileName)
-		return c.JSON(http.StatusUnauthorized, fileError)
-	}
 	///calculate year of birth///
 	t := time.Now()
-	conAge, err := strconv.Atoi(age)
-	if err != nil {
-		return err
-	}
-	///age error message in JSON///
-	ageError := &ErrorMessage{
-		Code:        "401",
-		Description: "Invalid age. You age must in range of 1 - 100",
-	}
-	///check age validation///
-	if conAge <= 0 || conAge > 100 {
-		return c.JSON(http.StatusUnauthorized, ageError)
-	}
-	///calculate year of birth with year now///
-	yearOfBirth := t.Year() - conAge
 	l, _ := time.LoadLocation("Local")
 
-	///if user not want to change note///
-	if note == "" {
-		note = GetUserData(bsonID).Note
+	///if user change data///
+	if name != "" {
+		a.UpdateId(bsonID, bson.M{"$set": bson.M{
+			"name":        name,
+			"update_time": t.In(l)}})
 	}
 
-	update := &UserData{
-		Name:        name,
-		Avatarname:  avatar.Filename,
-		Avatartype:  contentType,
-		Age:         conAge,
-		Yearofbirth: yearOfBirth,
-		Note:        note,
-		Updatetime:  t.In(l),
+	if note != "" {
+		a.UpdateId(bsonID, bson.M{"$set": bson.M{
+			"note":        note,
+			"update_time": t.In(l)}})
 	}
-	///update data into database///
-	a.UpdateId(bsonID, bson.M{"$set": bson.M{
-		"name":          update.Name,
-		"avatar_name":   update.Avatarname,
-		"avatar_type":   update.Avatartype,
-		"age":           update.Age,
-		"year_of_birth": update.Yearofbirth,
-		"note":          update.Note,
-		"update_time":   update.Updatetime}})
-
 	///if user input in note "clean". note field will be delete///
 	if note == "clean" {
 		a.UpdateId(bsonID, bson.M{"$unset": bson.M{"note": ""}})
 	}
 
-	///when cannot found user with this id///
+	if avatar != nil {
+		//souce of image//
+		src, err := avatar.Open()
+		if err != nil {
+			return err
+		}
+		defer src.Close()
+		///set path of image in server///
+		fileName := "img/" + avatar.Filename
+
+		//destination to upload image//
+		dst, err := os.Create(fileName)
+		if err != nil {
+			return err
+		}
+		defer dst.Close()
+
+		//copy image from souce to destination//
+		if _, err = io.Copy(dst, src); err != nil {
+			return err
+		}
+		//for get file name to check file type//
+		o, err := os.Open(fileName)
+		if err != nil {
+			return err
+		}
+		defer o.Close()
+
+		//using getFileType//
+		contentType, err := GetFileType(o)
+		if err != nil {
+			return c.HTML(http.StatusBadRequest, "")
+		}
+		///file type error message in JSON///
+		fileError := &ErrorMessage{
+			Code:        "401",
+			Description: "Invalid file type. Upload .png or .jpg/.jpeg only",
+		}
+		///check file type///
+		if contentType != "image/png" && contentType != "image/jpeg" && contentType != "image/jpg" {
+			os.Remove(fileName)
+			return c.JSON(http.StatusUnauthorized, fileError)
+		}
+
+		a.UpdateId(bsonID, bson.M{"$set": bson.M{
+			"avatar_name": avatar.Filename,
+			"avatar_type": contentType,
+			"update_time": t.In(l)}})
+	}
+
+	if age != "" {
+		conAge, yearOfBirth := CheckAge(age)
+		///age error message in JSON///
+		ageError := &ErrorMessage{
+			Code:        "401",
+			Description: "Invalid age. You age must in range of 1 - 100",
+		}
+		///check age validation///
+		if conAge <= 0 || conAge > 100 {
+			return c.JSON(http.StatusUnauthorized, ageError)
+		}
+		a.UpdateId(bsonID, bson.M{"$set": bson.M{
+			"age":           conAge,
+			"year_of_birth": yearOfBirth,
+			"update_time":   t.In(l)}})
+	}
+
+	return c.JSON(http.StatusCreated, GetUserData(bsonID))
+}
+
+//CheckAge is function to check age validation and calculate year of birth//
+func CheckAge(age string) (int, int) {
+	///calculate year of birth///
+	t := time.Now()
+	conAge, err := strconv.Atoi(age)
+	if err != nil {
+		return 0, 0
+	}
+	///calculate year of birth with year now///
+	yearOfBirth := t.Year() - conAge
+
+	return conAge, yearOfBirth
+}
+
+//DeleteUser context function using with DeleteUserData//
+func DeleteUser(c echo.Context) error {
+	type status struct {
+		Success bool `json:"success"`
+	}
+	id := c.Param("user_id")
+	///check if id param send with invaild format (24-digit)///
+	if len(id) != 24 {
+		return c.HTML(http.StatusUnauthorized, "Invalid ID format. Plase try again")
+	}
+	///convert string to bson object///
+	bsonID := bson.ObjectIdHex(id)
+
+	///when not found user with this id///
 	findUserError := &ErrorMessage{
 		Code:        "401",
 		Description: "User not found",
@@ -452,6 +491,25 @@ func UpdateData(c echo.Context) error {
 	if GetUserData(bsonID) == (UserData{}) {
 		return c.JSON(http.StatusUnauthorized, findUserError)
 	}
+	DeleteUserData(bsonID)
+	return c.JSON(http.StatusCreated, &status{Success: true})
+}
 
-	return c.JSON(http.StatusCreated, GetUserData(bsonID))
+//DeleteUserData is function to delete user by id//
+func DeleteUserData(id bson.ObjectId) error {
+	///open session to connect database///
+	session, err := mgo.Dial(server)
+	if err != nil {
+		return err
+	}
+	defer session.Close()
+
+	///access to database and collection to using data///
+	a := session.DB(database).C(collection)
+	///delete data by user id///
+	err = a.Remove(bson.M{"_id": id})
+	if err != nil {
+		return err
+	}
+	return err
 }
