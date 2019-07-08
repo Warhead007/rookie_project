@@ -138,7 +138,7 @@ func GetAllUserData(limit, page int) (*AllUserData, error) {
 	} else {
 		for i := startValue; i < startValue+limit; i++ {
 			///avoid a out of range of slices///
-			if i == len(usersData) {
+			if i >= len(usersData) {
 				break
 			}
 			///query data from userData into queryData///
