@@ -1,7 +1,9 @@
 package main
 
 import (
+	"bytes"
 	"log"
+	"time"
 
 	"github.com/streadway/amqp"
 )
@@ -18,13 +20,23 @@ func main() {
 	defer ch.Close()
 
 	//create queue variable (must same at sender variable)
+	//lesson 1
+	// q, err := ch.QueueDeclare(
+	// 	"hello", //name
+	// 	false,   //durable
+	// 	false,   //delete when unused
+	// 	false,   //exclusive
+	// 	false,   //no-wait
+	// 	nil,     //arguments
+	// )
+	//lesson 2
 	q, err := ch.QueueDeclare(
-		"hello", //name
-		false,   //durable
-		false,   //delete when unused
-		false,   //exclusive
-		false,   //no-wait
-		nil,     //arguments
+		"hello_1", //name
+		true,      //durable
+		false,     //delete when unused
+		false,     //exclusive
+		false,     //no-wait
+		nil,       //arguments
 	)
 	ErrorMsg(err, "Failed to create queue")
 
@@ -40,6 +52,13 @@ func main() {
 	)
 	ErrorMsg(err, "Failed to comsume")
 
+	//set prefetch
+	err = ch.Qos(
+		1,     // prefetch count
+		0,     // prefetch size
+		false, // global
+	)
+	ErrorMsg(err, "Cannot set Qos")
 	//set to exit receiving
 	forever := make(chan bool)
 
@@ -47,6 +66,12 @@ func main() {
 	go func() {
 		for d := range msg {
 			log.Printf("Received a massage: %s", d.Body)
+			//for delay message simulates realwork (Lesson 2)
+			dotCount := bytes.Count(d.Body, []byte("."))
+			t := time.Duration(dotCount)
+			time.Sleep(t * time.Second)
+			log.Printf("Done")
+			d.Ack(false)
 		}
 	}()
 
