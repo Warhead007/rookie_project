@@ -30,45 +30,45 @@ func main() {
 	// 	nil,     //arguments
 	// )
 	//lesson 2
-	// q, err := ch.QueueDeclare(
-	// 	"hello_1", //name
-	// 	true,      //durable
-	// 	false,     //delete when unused
-	// 	false,     //exclusive
-	// 	false,     //no-wait
-	// 	nil,       //arguments
-	// )
-	//lesson 3 not set queue name
 	q, err := ch.QueueDeclare(
-		"",    //name
-		false, //durable
-		false, //delete when unused
-		true,  //exclusive
-		false, //no-wait
-		nil,   //argument
+		"hello_1", //name
+		true,      //durable
+		false,     //delete when unused
+		false,     //exclusive
+		false,     //no-wait
+		nil,       //arguments
 	)
+	//lesson 3 not set queue name
+	// q, err := ch.QueueDeclare(
+	// 	"",    //name
+	// 	false, //durable
+	// 	false, //delete when unused
+	// 	true,  //exclusive
+	// 	false, //no-wait
+	// 	nil,   //argument
+	// )
 	ErrorMsg(err, "Failed to create queue")
 	//intermediary to send data into queue
-	err = ch.ExchangeDeclare(
-		"logs",   //name
-		"fanout", //type
-		true,     //durable
-		false,    //auto-deleted
-		false,    //internal
-		false,    //nowait
-		nil,      //arguments
-	)
-	ErrorMsg(err, "Failed to declare exchange")
+	// err = ch.ExchangeDeclare(
+	// 	"logs",   //name
+	// 	"fanout", //type
+	// 	true,     //durable
+	// 	false,    //auto-deleted
+	// 	false,    //internal
+	// 	false,    //nowait
+	// 	nil,      //arguments
+	// )
+	// ErrorMsg(err, "Failed to declare exchange")
 
 	//use with exchange to open queue and get data
-	err = ch.QueueBind(
-		q.Name, //name
-		"",     //routing key
-		"logs", //exchange
-		false,  //no-wait
-		nil,    //argument
-	)
-	ErrorMsg(err, "Cannot use queue bind")
+	// err = ch.QueueBind(
+	// 	q.Name, //name
+	// 	"",     //routing key
+	// 	"logs", //exchange
+	// 	false,  //no-wait
+	// 	nil,    //argument
+	// )
+	// ErrorMsg(err, "Cannot use queue bind")
 
 	//set data to send and publish in RabbitMQ server
 	//message to send (lesson 1)
@@ -78,7 +78,7 @@ func main() {
 	body := bodyFrom(os.Args)
 	err = ch.Publish(
 		//use when have exchange variable
-		"logs", //exchange
+		"",     //exchange
 		q.Name, //routing key
 		false,  // mandatory
 		false,  // immediate
