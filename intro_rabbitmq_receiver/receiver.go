@@ -1,9 +1,7 @@
 package main
 
 import (
-	"bytes"
 	"log"
-	"time"
 
 	"github.com/streadway/amqp"
 )
@@ -30,15 +28,44 @@ func main() {
 	// 	nil,     //arguments
 	// )
 	//lesson 2
+	// q, err := ch.QueueDeclare(
+	// 	"hello_1", //name
+	// 	true,      //durable
+	// 	false,     //delete when unused
+	// 	false,     //exclusive
+	// 	false,     //no-wait
+	// 	nil,       //arguments
+	// )
+	//lesson 3
 	q, err := ch.QueueDeclare(
-		"hello_1", //name
-		true,      //durable
-		false,     //delete when unused
-		false,     //exclusive
-		false,     //no-wait
-		nil,       //arguments
+		"",    //name
+		false, //durable
+		false, //delete when unused
+		true,  //exclusive
+		false, //no-wait
+		nil,   //arguments
 	)
 	ErrorMsg(err, "Failed to create queue")
+	//lesson 3
+	err = ch.ExchangeDeclare(
+		"logs",   //name
+		"fanout", //type
+		true,     //durable
+		false,    //auto-deleted
+		false,    //internal
+		false,    //no-wait
+		nil,      //arguments
+	)
+	ErrorMsg(err, "Failed to declare exchange")
+	//lesson 3
+	err = ch.QueueBind(
+		q.Name, //name
+		"",     //routing key
+		"logs", //exchange
+		false,  //no-wait
+		nil,    //arguments
+	)
+	ErrorMsg(err, "Failed to use queueBind")
 
 	//consume data to use
 	msg, err := ch.Consume(
@@ -67,11 +94,11 @@ func main() {
 		for d := range msg {
 			log.Printf("Received a massage: %s", d.Body)
 			//for delay message simulates realwork (Lesson 2)
-			dotCount := bytes.Count(d.Body, []byte("."))
-			t := time.Duration(dotCount)
-			time.Sleep(t * time.Second)
-			log.Printf("Done")
-			d.Ack(false)
+			// dotCount := bytes.Count(d.Body, []byte("."))
+			// t := time.Duration(dotCount)
+			// time.Sleep(t * time.Second)
+			// log.Printf("Done")
+			// d.Ack(false)
 		}
 	}()
 
