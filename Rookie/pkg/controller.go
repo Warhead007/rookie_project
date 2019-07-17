@@ -6,6 +6,7 @@ import (
 	"os"
 	"regexp"
 	"strconv"
+	"time"
 
 	"github.com/labstack/echo"
 	"gopkg.in/mgo.v2/bson"
@@ -114,9 +115,24 @@ func AddUser(c echo.Context) error {
 	if CountEmail(email) > 0 {
 		return c.JSON(http.StatusUnauthorized, emailExists)
 	}
+	t := time.Now()
+	l, _ := time.LoadLocation("Local")
+
+	add := &UserData{
+		ID:          bson.NewObjectId(),
+		Name:        name,
+		Avatarname:  avatar.Filename,
+		Avatartype:  contentType,
+		Age:         conAge,
+		Yearofbirth: yearOfBirth,
+		Note:        note,
+		Email:       email,
+		Createtime:  t.In(l),
+		Updatetime:  t.In(l),
+	}
 	//can add data to database
-	id := AddData(name, avatar.Filename, contentType, conAge, yearOfBirth, note, email)
-	return c.JSON(http.StatusCreated, GetUserData(id))
+	add.AddData()
+	return c.JSON(http.StatusCreated, GetUserData(add.ID))
 }
 
 //GetUser : function get user data from GetUserData to show in HTML
@@ -250,10 +266,19 @@ func UpdateUser(c echo.Context) error {
 			return c.JSON(http.StatusUnauthorized, ageError)
 		}
 	}
+	update := &UserData{
+		ID:          bsonID,
+		Name:        name,
+		Avatarname:  avatarName,
+		Avatartype:  contentType,
+		Age:         conAge,
+		Yearofbirth: yearOfBirth,
+		Note:        note,
+	}
 	//using UpdataData to update data in database with this data
-	userID := UpdateData(bsonID, name, conAge, yearOfBirth, avatarName, note, contentType)
+	update.UpdateData()
 
-	return c.JSON(http.StatusCreated, GetUserData(userID))
+	return c.JSON(http.StatusCreated, GetUserData(bsonID))
 }
 
 //DeleteUser : function using with DeleteUserData

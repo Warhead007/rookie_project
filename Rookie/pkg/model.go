@@ -37,7 +37,7 @@ type AllUserData struct {
 }
 
 //AddData : add new user data into database
-func AddData(name string, avatarName string, avatarType string, age int, yearOfBirth int, note string, email string) bson.ObjectId {
+func (u UserData) AddData() bson.ObjectId {
 	//open session to connect database
 	session, err := mgo.Dial(server)
 	if err != nil {
@@ -47,23 +47,8 @@ func AddData(name string, avatarName string, avatarType string, age int, yearOfB
 	//access to database and collection to using data
 	a := session.DB(database).C(collection)
 
-	t := time.Now()
-	l, _ := time.LoadLocation("Local")
-
-	add := &UserData{
-		ID:          bson.NewObjectId(),
-		Name:        name,
-		Avatarname:  avatarName,
-		Avatartype:  avatarType,
-		Age:         age,
-		Yearofbirth: yearOfBirth,
-		Note:        note,
-		Email:       email,
-		Createtime:  t.In(l),
-		Updatetime:  t.In(l),
-	}
-	a.Insert(add)
-	return add.ID
+	a.Insert(u)
+	return u.ID
 }
 
 //GetUserData : function get one user by ID
@@ -155,7 +140,7 @@ func GetAllUserData(limit, page int) (*AllUserData, error) {
 }
 
 //UpdateData : update user data by user id
-func UpdateData(id bson.ObjectId, name string, age int, yearOfBirth int, avatarName string, note string, avatarType string) bson.ObjectId {
+func (u UserData) UpdateData() {
 	//open session to connect database
 	session, err := mgo.Dial(server)
 	if err != nil {
@@ -169,36 +154,35 @@ func UpdateData(id bson.ObjectId, name string, age int, yearOfBirth int, avatarN
 	l, _ := time.LoadLocation("Local")
 
 	//if user change data
-	if name != "" {
-		a.UpdateId(id, bson.M{"$set": bson.M{
-			"name":        name,
+	if u.Name != "" {
+		a.UpdateId(u.ID, bson.M{"$set": bson.M{
+			"name":        u.Name,
 			"update_time": t.In(l)}})
 	}
-	if note != "" {
-		a.UpdateId(id, bson.M{"$set": bson.M{
-			"note":        note,
+	if u.Note != "" {
+		a.UpdateId(u.ID, bson.M{"$set": bson.M{
+			"note":        u.Note,
 			"update_time": t.In(l)}})
 	}
-	if note == "clean" {
+	if u.Note == "clean" {
 		//if user input in note "clean". note field will be delete
-		a.UpdateId(id, bson.M{"$unset": bson.M{"note": ""}})
-		a.UpdateId(id, bson.M{"$set": bson.M{"update_time": t.In(l)}})
+		a.UpdateId(u.ID, bson.M{"$unset": bson.M{"note": ""}})
+		a.UpdateId(u.ID, bson.M{"$set": bson.M{"update_time": t.In(l)}})
 	}
 	//if user send a new avatar file
-	if avatarName != "" && avatarType != "" {
+	if u.Avatarname != "" && u.Avatartype != "" {
 
-		a.UpdateId(id, bson.M{"$set": bson.M{
-			"avatar_name": avatarName,
-			"avatar_type": avatarType,
+		a.UpdateId(u.ID, bson.M{"$set": bson.M{
+			"avatar_name": u.Avatarname,
+			"avatar_type": u.Avatartype,
 			"update_time": t.In(l)}})
 	}
-	if age != 0 {
-		a.UpdateId(id, bson.M{"$set": bson.M{
-			"age":           age,
-			"year_of_birth": yearOfBirth,
+	if u.Age != 0 {
+		a.UpdateId(u.ID, bson.M{"$set": bson.M{
+			"age":           u.Age,
+			"year_of_birth": u.Yearofbirth,
 			"update_time":   t.In(l)}})
 	}
-	return id
 }
 
 //CountEmail function to check email exists in database
