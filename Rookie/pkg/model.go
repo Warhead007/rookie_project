@@ -46,7 +46,7 @@ func (u UserData) AddData() bson.ObjectId {
 	defer session.Close()
 	//access to database and collection to using data
 	a := session.DB(database).C(collection)
-
+	//insert data into database
 	a.Insert(u)
 	return u.ID
 }
@@ -149,25 +149,22 @@ func (u UserData) UpdateData() {
 	defer session.Close()
 	//access to database and collection to using data
 	a := session.DB(database).C(collection)
-	//calculate year of birth
-	t := time.Now()
-	l, _ := time.LoadLocation("Local")
 
 	//if user change data
 	if u.Name != "" {
 		a.UpdateId(u.ID, bson.M{"$set": bson.M{
 			"name":        u.Name,
-			"update_time": t.In(l)}})
+			"update_time": TimeNow()}})
 	}
 	if u.Note != "" {
 		a.UpdateId(u.ID, bson.M{"$set": bson.M{
 			"note":        u.Note,
-			"update_time": t.In(l)}})
+			"update_time": TimeNow()}})
 	}
 	if u.Note == "clean" {
 		//if user input in note "clean". note field will be delete
 		a.UpdateId(u.ID, bson.M{"$unset": bson.M{"note": ""}})
-		a.UpdateId(u.ID, bson.M{"$set": bson.M{"update_time": t.In(l)}})
+		a.UpdateId(u.ID, bson.M{"$set": bson.M{"update_time": TimeNow()}})
 	}
 	//if user send a new avatar file
 	if u.Avatarname != "" && u.Avatartype != "" {
@@ -175,13 +172,13 @@ func (u UserData) UpdateData() {
 		a.UpdateId(u.ID, bson.M{"$set": bson.M{
 			"avatar_name": u.Avatarname,
 			"avatar_type": u.Avatartype,
-			"update_time": t.In(l)}})
+			"update_time": TimeNow()}})
 	}
 	if u.Age != 0 {
 		a.UpdateId(u.ID, bson.M{"$set": bson.M{
 			"age":           u.Age,
 			"year_of_birth": u.Yearofbirth,
-			"update_time":   t.In(l)}})
+			"update_time":   TimeNow()}})
 	}
 }
 
@@ -224,4 +221,11 @@ func CalYearofBirth(age string) (int, int) {
 	yearOfBirth := t.Year() - conAge
 
 	return conAge, yearOfBirth
+}
+
+//TimeNow : function to get time now
+func TimeNow() time.Time {
+	t := time.Now()
+	l, _ := time.LoadLocation("Local")
+	return t.In(l)
 }

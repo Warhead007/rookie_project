@@ -6,7 +6,6 @@ import (
 	"os"
 	"regexp"
 	"strconv"
-	"time"
 
 	"github.com/labstack/echo"
 	"gopkg.in/mgo.v2/bson"
@@ -23,7 +22,7 @@ var internalError = &ErrorMessage{
 	Description: "Internal Error. Plase try again.",
 }
 
-//AddUser :function to get data from user
+//AddUser :function to get form data from user and send into AddData function
 func AddUser(c echo.Context) error {
 	name := c.FormValue("name")
 	age := c.FormValue("age")
@@ -79,7 +78,7 @@ func AddUser(c echo.Context) error {
 	}
 	defer o.Close()
 
-	//using getFileType
+	//using getFileType function
 	contentType, err := GetFileType(o)
 	if err != nil {
 		return c.JSON(http.StatusUnauthorized, internalError)
@@ -105,7 +104,6 @@ func AddUser(c echo.Context) error {
 	if conAge <= 0 || conAge > 100 {
 		return c.JSON(http.StatusUnauthorized, ageError)
 	}
-	//add data into AddData function
 	//check error when email exists
 	emailExists := &ErrorMessage{
 		Code:        "401",
@@ -115,9 +113,7 @@ func AddUser(c echo.Context) error {
 	if CountEmail(email) > 0 {
 		return c.JSON(http.StatusUnauthorized, emailExists)
 	}
-	t := time.Now()
-	l, _ := time.LoadLocation("Local")
-
+	//get each variable to struct
 	add := &UserData{
 		ID:          bson.NewObjectId(),
 		Name:        name,
@@ -127,10 +123,10 @@ func AddUser(c echo.Context) error {
 		Yearofbirth: yearOfBirth,
 		Note:        note,
 		Email:       email,
-		Createtime:  t.In(l),
-		Updatetime:  t.In(l),
+		Createtime:  TimeNow(),
+		Updatetime:  TimeNow(),
 	}
-	//can add data to database
+	//add data into AddData function
 	add.AddData()
 	return c.JSON(http.StatusCreated, GetUserData(add.ID))
 }
@@ -144,7 +140,7 @@ func GetUser(c echo.Context) error {
 	}
 	//convert string to bson object
 	bsonID := bson.ObjectIdHex(id)
-
+	//to check user in database
 	u := GetUserData(bsonID)
 	//when cannot found user with this id
 	findUserError := &ErrorMessage{
@@ -161,7 +157,7 @@ func GetUser(c echo.Context) error {
 
 //GetAllUser : get data from GetAllUserData to HTML
 func GetAllUser(c echo.Context) error {
-	//check error, limit value and page value they cannot be 0 or less than
+	//check error, limit value and page value if value is 0 or less than or other is set to default
 	limit, err := strconv.Atoi(c.QueryParam("limit"))
 	if err != nil || limit <= 0 {
 		limit = 10
@@ -198,7 +194,7 @@ func UpdateUser(c echo.Context) error {
 	if GetUserData(bsonID) == (UserData{}) {
 		return c.JSON(http.StatusNotFound, findUserError)
 	}
-
+	//set form value into variable
 	name := c.FormValue("name")
 	age := c.FormValue("age")
 	note := c.FormValue("note")
@@ -266,6 +262,7 @@ func UpdateUser(c echo.Context) error {
 			return c.JSON(http.StatusUnauthorized, ageError)
 		}
 	}
+	//get each variable to struct
 	update := &UserData{
 		ID:          bsonID,
 		Name:        name,
