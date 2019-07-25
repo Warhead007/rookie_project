@@ -10,26 +10,15 @@ import (
 	"time"
 
 	"github.com/streadway/amqp"
-	"gopkg.in/mgo.v2/bson"
 
 	functions "trainer/twiiter_api/pkg"
-
-	"gopkg.in/mgo.v2"
 )
 
 const (
-	server     = "localhost:27017"
-	database   = "feed"
-	collection = "feed_keyword"
+	exchangeName = "mastertoworker"
 )
 
 func main() {
-	//open session to connect database
-	session, err := mgo.Dial(server)
-	functions.FailOnError(err, "Cannot connect mongoDB.")
-	defer session.Close()
-	//access to database and collection to using data
-	a := session.DB(database).C(collection)
 	//connect with rabbitmq
 	conn, err := amqp.Dial("amqp://guest:guest@localhost:5672/")
 	functions.FailOnError(err, "Failed to connect to RabbitMQ.")
@@ -39,18 +28,8 @@ func main() {
 	functions.FailOnError(err, "Failed to open a channel.")
 	defer cha.Close()
 	//declare exchange to send data to queue
-	err = cha.ExchangeDeclare(
-		"keyword", // name
-		"fanout",  // type
-		true,      // durable
-		false,     // auto-deleted
-		false,     // internal
-		false,     // no-wait
-		nil,       // args
-	)
+	err = functions.DeclareExchange(cha, exchangeName)
 	functions.FailOnError(err, "Cannot declare exchange.")
-	//set variable slices of sturct
-	feedData := []functions.FeedData{}
 	//set layout for use in function CalculateTime
 	layout := "Mon Jan 02 15:04:05 -0700 2006"
 	//set ticker run every 1 minute
@@ -58,8 +37,7 @@ func main() {
 	fmt.Println("master starting.")
 	go func() {
 		for now := range ticker.C {
-			//get all data from collection Feed
-			a.Find(nil).All(&feedData)
+			feedData := functions.GetAllFeed()
 			//set variable for show current time in string
 			timeNow := ""
 			//loop for get data
@@ -72,22 +50,13 @@ func main() {
 				fmt.Println(feedData.Keyword, timeWithFormat, diff)
 				//if different time higher than 15 minute
 				if diff >= 15 {
-					//set feed_time with time now
-					a.UpdateId(feedData.ID, bson.M{"$set": bson.M{
-						"feed_time": time.Now()}})
+					//call function update time to current time
+					functions.UpdateFeedTime(feedData.ID)
 					fmt.Println("Update feed time:", feedData.Keyword)
 					conFeedData, err := json.Marshal(feedData)
 					functions.FailOnError(err, "Cannot convert this struct to JSON.")
 					//set publisher
-					err = cha.Publish(
-						"keyword", //name
-						"",        //rounting key
-						false,     //mandatory
-						false,     //immediate
-						amqp.Publishing{
-							ContentType: "text/plain",
-							Body:        []byte(conFeedData),
-						})
+					err = functions.PublishData(cha, exchangeName, conFeedData)
 					fmt.Println("Send", string(conFeedData), "to worker")
 				}
 			}

@@ -8,11 +8,17 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 	functions "trainer/twiiter_api/pkg"
 
 	"github.com/ChimeraCoder/anaconda"
 	"github.com/streadway/amqp"
+)
+
+const (
+	exchangeNameFromMaster = "mastertoworker"
+	exchangeNameToMap      = "workertomap"
+	queueNameFromMaster    = "mastertoworker"
+	queueNameToMap         = "workertomap"
 )
 
 func main() {
@@ -37,51 +43,23 @@ func main() {
 	cha, err := conn.Channel()
 	functions.FailOnError(err, "Failed to open a channel.")
 	defer cha.Close()
-
-	err = cha.ExchangeDeclare(
-		"keyword", // name
-		"fanout",  // type
-		true,      // durable
-		false,     // auto-deleted
-		false,     // internal
-		false,     // no-wait
-		nil,       // args
-	)
+	//declare exchange to connect master
+	err = functions.DeclareExchange(cha, exchangeNameFromMaster)
+	//declare exchange to connect map
+	err = functions.DeclareExchange(cha, exchangeNameToMap)
 	functions.FailOnError(err, "Cannot declare exchange.")
-
-	queue, err := cha.QueueDeclare(
-		"mastertoworker", //name
-		false,            //durable
-		false,            //delete when not used
-		false,            //exclusive
-		false,            //no-wait
-		nil,              //args
-	)
+	//declare queue from master
+	queue, err := functions.DeclareQueue(cha, queueNameFromMaster)
 	functions.FailOnError(err, "Cannot declare queue.")
-
-	err = cha.QueueBind(
-		queue.Name, //name
-		"",         //rounting key
-		"keyword",  //exchange name
-		false,      //no-wait
-		nil,        //args
-	)
+	//bind queue to connect queue with exchange from master
+	err = functions.BindQueue(cha, exchangeNameFromMaster, queueNameFromMaster)
 	functions.FailOnError(err, "Cannot binding queue.")
-
-	msgs, err := cha.Consume(
-		queue.Name, //name
-		"",         //consumer
-		true,       //auto-ack
-		false,      //exclusive
-		false,      //no-local
-		false,      //no-wait
-		nil,        //args
-	)
+	//consume data from queue
+	msgs, err := functions.ConsumeData(cha, queue.Name)
 	functions.FailOnError(err, "Consume failed.")
 	fmt.Println("Worker starting.")
 	go func() {
 		for d := range msgs {
-			var mongoStream functions.MongoStreams
 			//convert data from master for useable
 			var feedData functions.FeedData
 			json.Unmarshal(d.Body, &feedData)
@@ -92,26 +70,14 @@ func main() {
 				diff, timeWithFormat := functions.CalculateTime(layout, tweet.CreatedAt)
 				//if different time between tweet time and time now less than. Get that data to use
 				if diff <= 15 {
-					mongoStream.ChannelTypeID = "Twitter"
-					mongoStream.ChannelSouceID = "Twitter"
-					mongoStream.ChannelClassificationID = "Twitter"
-					mongoStream.ChannelContentID = "twitter"
-					mongoStream.SocialMediaID = "twitter"
-					mongoStream.CreateAt = time.Now()
-					mongoStream.UpdateAt = time.Now()
 					fmt.Println("Time of tweet: ", timeWithFormat)
-					//fmt.Println("Text of Tweet: ", tweet.Text)
-					//check type of tweet
-					if tweet.Entities.Media != nil {
-						//fmt.Println(tweet.ExtendedEntities.Media[0].Type)
-						mongoStream.StreamTypeID = tweet.ExtendedEntities.Media[0].Type
-					} else {
-						fmt.Println("text")
-					}
-					mongoStream.Payload = tweet
 					fmt.Println("Different time of tweet and time now: ", int(diff), " minute")
 					fmt.Println("Tweet count:", i+1)
-					fmt.Println(mongoStream)
+					fmt.Println(functions.StoreDataForMap(tweet))
+					//convert data to send to map function
+					conTweetData, err := json.Marshal(functions.StoreDataForMap(tweet))
+					functions.FailOnError(err, "Cannot convert this struct to JSON.")
+					err = functions.PublishData(cha, exchangeNameToMap, conTweetData)
 				} else {
 					break
 				}
