@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 	functions "trainer/twiiter_api/pkg"
 
 	"github.com/ChimeraCoder/anaconda"
@@ -80,6 +81,7 @@ func main() {
 	fmt.Println("Worker starting.")
 	go func() {
 		for d := range msgs {
+			var mongoStream functions.MongoStreams
 			//convert data from master for useable
 			var feedData functions.FeedData
 			json.Unmarshal(d.Body, &feedData)
@@ -90,10 +92,26 @@ func main() {
 				diff, timeWithFormat := functions.CalculateTime(layout, tweet.CreatedAt)
 				//if different time between tweet time and time now less than. Get that data to use
 				if diff <= 15 {
+					mongoStream.ChannelTypeID = "Twitter"
+					mongoStream.ChannelSouceID = "Twitter"
+					mongoStream.ChannelClassificationID = "Twitter"
+					mongoStream.ChannelContentID = "twitter"
+					mongoStream.SocialMediaID = "twitter"
+					mongoStream.CreateAt = time.Now()
+					mongoStream.UpdateAt = time.Now()
 					fmt.Println("Time of tweet: ", timeWithFormat)
-					fmt.Println("Text of Tweet: ", tweet.Text)
+					//fmt.Println("Text of Tweet: ", tweet.Text)
+					//check type of tweet
+					if tweet.Entities.Media != nil {
+						//fmt.Println(tweet.ExtendedEntities.Media[0].Type)
+						mongoStream.StreamTypeID = tweet.ExtendedEntities.Media[0].Type
+					} else {
+						fmt.Println("text")
+					}
+					mongoStream.Payload = tweet
 					fmt.Println("Different time of tweet and time now: ", int(diff), " minute")
 					fmt.Println("Tweet count:", i+1)
+					fmt.Println(mongoStream)
 				} else {
 					break
 				}
