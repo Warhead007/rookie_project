@@ -3,6 +3,8 @@ package functions
 import (
 	"log"
 	"time"
+
+	"github.com/ChimeraCoder/anaconda"
 )
 
 //CalculateTime function to get time from tweet then convert and calculate time
@@ -20,4 +22,24 @@ func FailOnError(err error, msg string) {
 	if err != nil {
 		log.Fatalf("%s: %s", msg, err)
 	}
+}
+
+//StoreDataForMap function to make data and store tweet data in payload to send to Map function
+func StoreDataForMap(tweet anaconda.Tweet) MongoStreams {
+	mongoStream := MongoStreams{
+		ChannelTypeID:           "twitter",
+		ChannelSouceID:          "twitter",
+		ChannelClassificationID: "ta",
+		ChannelContentID:        "taw",
+		SocialMediaID:           "twitter",
+		CreateAt:                time.Now(),
+		UpdateAt:                time.Now(),
+		Payload:                 tweet,
+	}
+	if tweet.Entities.Media != nil {
+		mongoStream.StreamTypeID = tweet.ExtendedEntities.Media[0].Type
+	} else {
+		mongoStream.StreamTypeID = "text"
+	}
+	return mongoStream
 }
