@@ -13,8 +13,9 @@ import (
 )
 
 const (
-	exchangeNameFromWorker = "workertomap"
+	exchangeNameFromWorker = "ha_twstream"
 	queueNameFromWorker    = "workertomap"
+	rountingKey            = "twstream.tweet.add"
 )
 
 func main() {
@@ -30,7 +31,7 @@ func main() {
 	queue, err := functions.DeclareQueue(cha, queueNameFromWorker)
 	functions.FailOnError(err, "Cannot declare queue.")
 	//bind queue to connect queue with exchange from master
-	err = functions.BindQueue(cha, exchangeNameFromWorker, queueNameFromWorker)
+	err = functions.BindQueue(cha, exchangeNameFromWorker, queueNameFromWorker, rountingKey)
 	functions.FailOnError(err, "Cannot binding queue.")
 	//consume data from queue
 	msgs, err := functions.ConsumeData(cha, queue.Name)
@@ -38,9 +39,9 @@ func main() {
 	fmt.Println("Map starting.")
 	go func() {
 		for d := range msgs {
-			var mongoStreams functions.MongoStreams
-			json.Unmarshal(d.Body, &mongoStreams)
-			fmt.Println(mongoStreams)
+			var feedQuery functions.FeedQuery
+			json.Unmarshal(d.Body, &feedQuery)
+			fmt.Println(feedQuery)
 		}
 	}()
 	// Wait for SIGINT and SIGTERM (HIT CTRL-C)
