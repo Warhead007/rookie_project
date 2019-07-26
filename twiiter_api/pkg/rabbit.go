@@ -6,7 +6,7 @@ import "github.com/streadway/amqp"
 func DeclareExchange(cha *amqp.Channel, exchangeName string) error {
 	return cha.ExchangeDeclare(
 		exchangeName, // name
-		"fanout",     // type
+		"direct",     // type
 		true,         // durable
 		false,        // auto-deleted
 		false,        // internal
