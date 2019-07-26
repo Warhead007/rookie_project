@@ -78,6 +78,8 @@ func main() {
 					conTweetData, err := json.Marshal(functions.StoreDataForMap(tweet))
 					functions.FailOnError(err, "Cannot convert this struct to JSON.")
 					err = functions.PublishData(cha, exchangeNameToMap, conTweetData)
+					//update time to feed_time
+					functions.UpdateFeedTime(feedData.ID)
 				} else {
 					break
 				}
