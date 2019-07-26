@@ -68,6 +68,6 @@ func main() {
 	ch := make(chan os.Signal)
 	signal.Notify(ch, syscall.SIGINT, syscall.SIGTERM)
 	log.Println(<-ch)
-	fmt.Println("master stoped.")
+	fmt.Println("master stopped.")
 	ticker.Stop()
 }
