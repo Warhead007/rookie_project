@@ -9,6 +9,7 @@ import (
 	"syscall"
 	functions "trainer/twiiter_api/pkg"
 
+	"github.com/ChimeraCoder/anaconda"
 	"github.com/streadway/amqp"
 )
 
@@ -39,9 +40,16 @@ func main() {
 	fmt.Println("Map starting.")
 	go func() {
 		for d := range msgs {
+			//all data
 			var feedQuery functions.FeedQuery
 			json.Unmarshal(d.Body, &feedQuery)
-			fmt.Println(feedQuery)
+			//payload only
+			var payload anaconda.Tweet
+			payload = feedQuery.Payload
+			//functions.AddDataStream(functions.StoreDataForStream(payload))
+
+			fmt.Println(functions.StoreDataForStream(payload))
+			fmt.Println("--------------------------------------------------------------------")
 		}
 	}()
 	// Wait for SIGINT and SIGTERM (HIT CTRL-C)
