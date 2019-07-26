@@ -25,21 +25,14 @@ func FailOnError(err error, msg string) {
 }
 
 //StoreDataForMap function to make data and store tweet data in payload to send to Map function
-func StoreDataForMap(tweet anaconda.Tweet) MongoStreams {
-	mongoStream := MongoStreams{
+func StoreDataForMap(tweet anaconda.Tweet) FeedQuery {
+	feedQuery := FeedQuery{
 		ChannelTypeID:           "twitter",
 		ChannelSouceID:          "twitter",
 		ChannelClassificationID: "ta",
 		ChannelContentID:        "taw",
 		SocialMediaID:           "twitter",
-		CreateAt:                time.Now(),
-		UpdateAt:                time.Now(),
 		Payload:                 tweet,
 	}
-	if tweet.Entities.Media != nil {
-		mongoStream.StreamTypeID = tweet.ExtendedEntities.Media[0].Type
-	} else {
-		mongoStream.StreamTypeID = "text"
-	}
-	return mongoStream
+	return feedQuery
 }
