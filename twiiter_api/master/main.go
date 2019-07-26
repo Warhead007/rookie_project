@@ -15,7 +15,8 @@ import (
 )
 
 const (
-	exchangeName = "mastertoworker"
+	exchangeName = "ha_twfeed"
+	rountingKey  = "ha_twfeed.tweet.add"
 )
 
 func main() {
@@ -56,8 +57,8 @@ func main() {
 					conFeedData, err := json.Marshal(feedData)
 					functions.FailOnError(err, "Cannot convert this struct to JSON.")
 					//set publisher
-					err = functions.PublishData(cha, exchangeName, conFeedData)
-					fmt.Println("Send", string(conFeedData), "to worker")
+					err = functions.PublishData(cha, exchangeName, rountingKey, conFeedData)
+					fmt.Println("Send", string(feedData.Keyword), "to worker")
 				}
 			}
 			fmt.Println("Current time:", timeNow)
