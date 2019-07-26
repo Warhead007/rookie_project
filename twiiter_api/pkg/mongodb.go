@@ -38,3 +38,14 @@ func UpdateFeedTime(id bson.ObjectId) {
 	a.UpdateId(id, bson.M{"$set": bson.M{
 		"feed_time": time.Now()}})
 }
+
+//AddDataStream function to get data from stream into database
+func AddDataStream(data MongoStreams) {
+	//open session to connect database
+	session, err := mgo.Dial(server)
+	FailOnError(err, "Cannot connect mongoDB.")
+	defer session.Close()
+	//access to database and collection to using data
+	a := session.DB("mongo_streams").C("twitter_data")
+	a.Insert(&data)
+}
