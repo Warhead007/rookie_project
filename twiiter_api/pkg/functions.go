@@ -1,6 +1,7 @@
 package functions
 
 import (
+	"encoding/json"
 	"log"
 	"time"
 
@@ -31,8 +32,38 @@ func StoreDataForMap(tweet anaconda.Tweet) FeedQuery {
 		ChannelSouceID:          "twitter",
 		ChannelClassificationID: "ta",
 		ChannelContentID:        "taw",
-		SocialMediaID:           "twitter",
+		SocialMediaID:           tweet.User.IdStr,
 		Payload:                 tweet,
 	}
 	return feedQuery
+}
+
+//StoreDataForStream function to make data from map to send into database
+func StoreDataForStream(tweet anaconda.Tweet) string {
+	checkTypeStream := ""
+	if tweet.ExtendedEntities.Media == nil {
+		checkTypeStream = "text"
+	} else {
+		checkTypeStream = tweet.ExtendedEntities.Media[0].Type
+	}
+	//payload only
+	var payload anaconda.Tweet
+	payload = tweet
+	mongoStreams := MongoStreams{
+		ChannelTypeID:           "twitter",
+		ChannelSouceID:          "twitter",
+		ChannelClassificationID: "ta",
+		ChannelContentID:        "taw",
+		SocialMediaID:           tweet.User.IdStr,
+		StreamTypeID:            checkTypeStream,
+		CreateAt:                time.Now(),
+		UpdateAt:                time.Now(),
+	}
+	//convert payload to JSON to use map interface{}
+	conPayloadData, _ := json.Marshal(struct {
+		MongoStreams
+		anaconda.Tweet
+	}{mongoStreams, payload})
+
+	return string(conPayloadData)
 }
