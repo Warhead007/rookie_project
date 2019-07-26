@@ -54,10 +54,10 @@ func ConsumeData(cha *amqp.Channel, queueName string) (<-chan amqp.Delivery, err
 //PublishData function to publish data to exchange
 func PublishData(cha *amqp.Channel, exchangeName string, data []byte) error {
 	return cha.Publish(
-		"keyword", //exchange name
-		"",        //rounting key
-		false,     //mandatory
-		false,     //immediate
+		exchangeName, //exchange name
+		"",           //rounting key
+		false,        //mandatory
+		false,        //immediate
 		amqp.Publishing{
 			ContentType: "text/plain",
 			Body:        []byte(data),
