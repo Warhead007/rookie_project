@@ -28,10 +28,10 @@ func DeclareQueue(cha *amqp.Channel, queueName string) (amqp.Queue, error) {
 }
 
 //BindQueue function to bind queue to connect queue with exchange
-func BindQueue(cha *amqp.Channel, exchangeName, queueName string) error {
+func BindQueue(cha *amqp.Channel, exchangeName, queueName, rountingKey string) error {
 	return cha.QueueBind(
 		queueName,    //name
-		"",           //rounting key
+		rountingKey,  //rounting key
 		exchangeName, //exchange name
 		false,        //no-wait
 		nil,          //args
@@ -52,10 +52,10 @@ func ConsumeData(cha *amqp.Channel, queueName string) (<-chan amqp.Delivery, err
 }
 
 //PublishData function to publish data to exchange
-func PublishData(cha *amqp.Channel, exchangeName string, data []byte) error {
+func PublishData(cha *amqp.Channel, exchangeName, rountingKey string, data []byte) error {
 	return cha.Publish(
 		exchangeName, //exchange name
-		"",           //rounting key
+		rountingKey,  //rounting key
 		false,        //mandatory
 		false,        //immediate
 		amqp.Publishing{
