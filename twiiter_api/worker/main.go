@@ -15,10 +15,12 @@ import (
 )
 
 const (
-	exchangeNameFromMaster = "mastertoworker"
-	exchangeNameToMap      = "workertomap"
+	exchangeNameFromMaster = "ha_twfeed"
+	exchangeNameToMap      = "ha_twstream"
 	queueNameFromMaster    = "mastertoworker"
 	queueNameToMap         = "workertomap"
+	rountingKeyFromMaster  = "ha_twfeed.tweet.add"
+	rountingKeyToMap       = "twstream.tweet.add"
 )
 
 func main() {
@@ -52,7 +54,7 @@ func main() {
 	queue, err := functions.DeclareQueue(cha, queueNameFromMaster)
 	functions.FailOnError(err, "Cannot declare queue.")
 	//bind queue to connect queue with exchange from master
-	err = functions.BindQueue(cha, exchangeNameFromMaster, queueNameFromMaster)
+	err = functions.BindQueue(cha, exchangeNameFromMaster, queueNameFromMaster, rountingKeyFromMaster)
 	functions.FailOnError(err, "Cannot binding queue.")
 	//consume data from queue
 	msgs, err := functions.ConsumeData(cha, queue.Name)
@@ -77,7 +79,7 @@ func main() {
 					//convert data to send to map function
 					conTweetData, err := json.Marshal(functions.StoreDataForMap(tweet))
 					functions.FailOnError(err, "Cannot convert this struct to JSON.")
-					err = functions.PublishData(cha, exchangeNameToMap, conTweetData)
+					err = functions.PublishData(cha, exchangeNameToMap, rountingKeyToMap, conTweetData)
 					//update time to feed_time
 					functions.UpdateFeedTime(feedData.ID)
 				} else {
