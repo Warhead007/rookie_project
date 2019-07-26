@@ -14,7 +14,18 @@ type FeedData struct {
 	FeedTime time.Time     `bson:"feed_time" json:"feed_time"`
 }
 
-//MongoStreams sturct for store data from worker and use in map function
+//FeedQuery struct for data from worker to map
+type FeedQuery struct {
+	ChannelTypeID           string         `bson:"channel_type_id" json:"channel_type_id"`
+	ChannelSouceID          string         `bson:"channel_souce_id" json:"channel_souce_id"`
+	ChannelClassificationID string         `bson:"channel_classification_id" json:"channel_classification_id"`
+	ChannelContentID        string         `bson:"channel_content_id" json:"channel_content_id"`
+	StreamTypeID            string         `bson:"stream_type_id" json:"stream_type_id"`
+	SocialMediaID           string         `bson:"social_media_id" json:"social_media_id"`
+	Payload                 anaconda.Tweet `bson:"payload" json:"payload"`
+}
+
+//MongoStreams sturct for store data from map function to database
 type MongoStreams struct {
 	ChannelTypeID           string         `bson:"channel_type_id" json:"channel_type_id"`
 	ChannelSouceID          string         `bson:"channel_souce_id" json:"channel_souce_id"`
