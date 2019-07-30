@@ -40,7 +40,7 @@ func UpdateFeedTime(id bson.ObjectId) {
 }
 
 //AddDataStream function to get data from stream into database
-func AddDataStream(data MongoStreams) {
+func AddDataStream(data interface{}) {
 	//open session to connect database
 	session, err := mgo.Dial(server)
 	FailOnError(err, "Cannot connect mongoDB.")
