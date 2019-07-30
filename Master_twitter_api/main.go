@@ -11,7 +11,7 @@ import (
 
 	"github.com/streadway/amqp"
 
-	functions "trainer/twiiter_api/pkg"
+	functions "trainer/Master_twitter_api/pkg"
 )
 
 const (

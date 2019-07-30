@@ -8,7 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	functions "trainer/twiiter_api/pkg"
+	functions "trainer/Worker_twitter_api/pkg"
 
 	"github.com/ChimeraCoder/anaconda"
 	"github.com/streadway/amqp"
