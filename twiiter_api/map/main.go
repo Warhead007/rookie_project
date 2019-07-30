@@ -46,9 +46,14 @@ func main() {
 			//payload only
 			var payload anaconda.Tweet
 			payload = feedQuery.Payload
-			//functions.AddDataStream(functions.StoreDataForStream(payload))
+			//send payload data to combine with fixed data
+			conPayload := functions.StoreDataForStream(payload)
+			var payloadForStore interface{}
+			err = json.Unmarshal(conPayload, &payloadForStore)
+			//send data into database
+			//functions.AddDataStream(payloadForStore)
 
-			fmt.Println(functions.StoreDataForStream(payload))
+			fmt.Println(payloadForStore)
 			fmt.Println("--------------------------------------------------------------------")
 		}
 	}()
