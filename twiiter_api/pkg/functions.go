@@ -38,8 +38,8 @@ func StoreDataForMap(tweet anaconda.Tweet) FeedQuery {
 	return feedQuery
 }
 
-//StoreDataForStream function to make data from map to send into database
-func StoreDataForStream(tweet anaconda.Tweet) string {
+//StoreDataForStream function to make data from map ,combine data with payload and send into database
+func StoreDataForStream(tweet anaconda.Tweet) []byte {
 	checkTypeStream := ""
 	if tweet.ExtendedEntities.Media == nil {
 		checkTypeStream = "text"
@@ -49,6 +49,7 @@ func StoreDataForStream(tweet anaconda.Tweet) string {
 	//payload only
 	var payload anaconda.Tweet
 	payload = tweet
+	//set mongostream data
 	mongoStreams := MongoStreams{
 		ChannelTypeID:           "twitter",
 		ChannelSouceID:          "twitter",
@@ -59,11 +60,11 @@ func StoreDataForStream(tweet anaconda.Tweet) string {
 		CreateAt:                time.Now(),
 		UpdateAt:                time.Now(),
 	}
-	//convert payload to JSON to use map interface{}
+	//combine mongoStream and payload to JSON
 	conPayloadData, _ := json.Marshal(struct {
 		MongoStreams
 		anaconda.Tweet
 	}{mongoStreams, payload})
 
-	return string(conPayloadData)
+	return conPayloadData
 }
