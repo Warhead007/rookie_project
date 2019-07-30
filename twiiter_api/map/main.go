@@ -51,7 +51,7 @@ func main() {
 			var payloadForStore interface{}
 			err = json.Unmarshal(conPayload, &payloadForStore)
 			//send data into database
-			//functions.AddDataStream(payloadForStore)
+			functions.AddDataStream(payloadForStore)
 
 			fmt.Println(payloadForStore)
 			fmt.Println("--------------------------------------------------------------------")
